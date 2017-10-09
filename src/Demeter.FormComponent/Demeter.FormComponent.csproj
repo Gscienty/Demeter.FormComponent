@@ -3,8 +3,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ElasticSearch" Version="1.4.2" />
+    <PackageReference Include="Elasticsearch.Net" Version="5.5.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="1.1.1" />
     <PackageReference Include="MongoDB.Driver" Version="2.4.4" />
+    <PackageReference Include="NEST" Version="5.5.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
   </ItemGroup>
 </Project>

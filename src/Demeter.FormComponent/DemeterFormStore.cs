@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using Nest;
 
 namespace Demeter.FormComponent
 {
@@ -10,8 +11,12 @@ namespace Demeter.FormComponent
         where TForm : DemeterForm, new()
     {
         private readonly IMongoCollection<TForm> _formCollection;
+        private readonly ElasticClient _elasticClient;
 
-        public DemeterFormStore(IMongoDatabase database, string formsCollection)
+        public DemeterFormStore(
+            IMongoDatabase database,
+            string formsCollection,
+            ElasticClient elasticClient = null)
         {
             if (database == null)
             {
@@ -23,6 +28,7 @@ namespace Demeter.FormComponent
             }
 
             this._formCollection = database.GetCollection<TForm>(formsCollection);
+            this._elasticClient = elasticClient;
         }
 
         async Task<FormResult> IFormStore<TForm>.CreateAsync(TForm form,
@@ -90,9 +96,23 @@ namespace Demeter.FormComponent
 
         }
 
-        Task<IEnumerable<TForm>> IFormStore<TForm>.QueryAsync(string queryString, CancellationToken cancellationToken)
+        async Task<IEnumerable<TForm>> IFormStore<TForm>.QueryAsync(string queryString, int count, CancellationToken cancellationToken)
         {
-            throw new System.NotImplementedException();
+            if (queryString == null)
+            {
+                throw new ArgumentNullException(nameof(queryString));
+            }
+            if (this._elasticClient == null)
+            {
+                throw new NullReferenceException(nameof(this._elasticClient));
+            }
+
+            var response = await this._elasticClient.SearchAsync<TForm>(s => s
+                .From(0).Size(count).Query(q =>
+                q.QueryString(m => m.Query(queryString))
+            ));
+
+            return response.Documents;
         }
 
         async Task<FormResult> IFormStore<TForm>.UpdateAsync(TForm form, CancellationToken cancellationToken)
