@@ -61,6 +61,8 @@ namespace Demeter.FormComponent.AspNetCore.Extension
                     elasticSearch
                 );
            });
+
+           services.AddSingleton<FormManager<TForm>>(provider => new FormManager<TForm>(provider));
         }
     }
 }

@@ -1,0 +1,31 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="container" style="margin: 21px auto; width:100%">
+    <form action="/Home/Submit" method="POST">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <div class="input-group" style="width:100%">
+                    <label>Message</label>
+                    <textarea class="form-control" name="content" style="resize: none;height: 120px"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="margin-top: 21px">
+            <div class="col-md-6 col-md-offset-3">
+                <button class="btn btn-default" type="submit">Submit</button>
+            </div>
+        </div>
+    </form>
+    <hr />
+
+    @foreach(var message in ViewBag.Messages) {
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3" style="background: #efefef; padding: 21px; border-radius: 10px; margin-bottom: 21px;">
+                <p>@message.Content</p>
+                <a href="/Home/Delete?id=@message.Id">Delete</a>
+            </div>
+        </div>
+    }
+</div>

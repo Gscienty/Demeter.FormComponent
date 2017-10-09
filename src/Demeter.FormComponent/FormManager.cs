@@ -22,13 +22,31 @@ namespace Demeter.FormComponent
         public Task<FormResult> DeleteAsync(TForm entity)
             => this._formStore.DeleteAsync(entity, new CancellationToken());
 
+        public async Task<FormResult> DeleteAsync(string id)
+        {
+            var form = await this.FindByIdAsync(id);
+            if (form == null)
+            {
+                return FormResult.Failed(new FormError
+                {
+                    Code = "404",
+                    Description = "not found"
+                });
+            }
+
+            return await this.DeleteAsync(form);
+        }
+
         public Task<FormResult> UpdateAsync(TForm entity)
             => this._formStore.UpdateAsync(entity, new CancellationToken());
             
         public Task<IEnumerable<TForm>> QueryAsync(string queryString, int count)
             => this._formStore.QueryAsync(queryString, count, new CancellationToken());
 
-        public Task<IEnumerable<TForm>> LastestAsync(int count, CancellationToken cancellationToken)
+        public Task<IEnumerable<TForm>> LastestAsync(int count)
             => this._formStore.LastestAsync(count, new CancellationToken());
+        
+        public Task<TForm> FindByIdAsync(string id)
+            => this._formStore.FindByIdAsync(id, new CancellationToken());
     }
 }
