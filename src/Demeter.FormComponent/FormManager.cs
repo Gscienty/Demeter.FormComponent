@@ -25,8 +25,8 @@ namespace Demeter.FormComponent
         public Task<FormResult> UpdateAsync(TForm entity)
             => this._formStore.UpdateAsync(entity, new CancellationToken());
             
-        public Task<IEnumerable<TForm>> QueryAsync(string queryString)
-            => this._formStore.QueryAsync(queryString, new CancellationToken());
+        public Task<IEnumerable<TForm>> QueryAsync(string queryString, int count)
+            => this._formStore.QueryAsync(queryString, count, new CancellationToken());
 
         public Task<IEnumerable<TForm>> LastestAsync(int count, CancellationToken cancellationToken)
             => this._formStore.LastestAsync(count, new CancellationToken());
