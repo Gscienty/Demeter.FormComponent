@@ -38,8 +38,24 @@ namespace Demeter.FormComponent
             {
                 throw new ArgumentNullException(nameof(form));
             }
+            await Task.WhenAll(
+                this._formCollection.InsertOneAsync(
+                    form,
+                    cancellationToken: cancellationToken
+                ),
+                Task.Run(async () =>
+                {
+                    if (this._elasticClient == null)
+                    {
+                        return;
+                    }
 
-            await this._formCollection.InsertOneAsync(form, cancellationToken: cancellationToken);
+                    await this._elasticClient.IndexAsync(
+                        form, m => m.Id(form.Id)
+                    );
+                })
+            );
+
             return FormResult.Success;
         }
 
@@ -55,13 +71,31 @@ namespace Demeter.FormComponent
             form.Delete();
 
             var query = Builders<TForm>.Filter.Eq(f => f.Id, form.Id);
-            var update = Builders<TForm>.Update.Set(f => f.DeleteOn, form.DeleteOn);
+            var update = Builders<TForm>
+                .Update
+                .Set(f => f.DeleteOn, form.DeleteOn);
 
-            var result = await this._formCollection.UpdateOneAsync(
-                query,
-                update,
-                new UpdateOptions { IsUpsert = false },
-                cancellationToken);
+            var result = (await Task.WhenAll(
+                this._formCollection.UpdateOneAsync(
+                    query,
+                    update,
+                    new UpdateOptions { IsUpsert = false },
+                    cancellationToken
+                ),
+                Task.Run(async () =>
+                {
+                    if (this._elasticClient == null)
+                    {
+                        return (UpdateResult)UpdateResult.Unacknowledged.Instance;
+                    }
+
+                    var response = await this._elasticClient.DeleteAsync<TForm>(
+                        DocumentPath<TForm>.Id(form.Id)
+                    );
+
+                    return (UpdateResult)UpdateResult.Unacknowledged.Instance;
+                })
+            ))[0];
             return result.IsModifiedCountAvailable && result.ModifiedCount == 1
                 ? FormResult.Success
                 : FormResult.Failed();
@@ -127,11 +161,28 @@ namespace Demeter.FormComponent
                 Builders<TForm>.Filter.Eq(f => f.Id, form.Id)
             );
             
-            var result = await this._formCollection.ReplaceOneAsync(
-                query,
-                form,
-                new UpdateOptions { IsUpsert = false },
-                cancellationToken);
+            var result = (await Task.WhenAll(
+                this._formCollection.ReplaceOneAsync(
+                    query,
+                    form,
+                    new UpdateOptions { IsUpsert = false },
+                    cancellationToken
+                ),
+                Task.Run(async () => 
+                {
+                    if (this._elasticClient == null)
+                    {
+                        return (ReplaceOneResult)ReplaceOneResult.Unacknowledged.Instance;
+                    }
+
+                    await this._elasticClient.UpdateAsync<TForm>(
+                        DocumentPath<TForm>.Id(form.Id),
+                        update => update.Doc(form)
+                    );
+
+                    return (ReplaceOneResult)ReplaceOneResult.Unacknowledged.Instance;
+                })
+            ))[0];
 
             return result.IsModifiedCountAvailable && result.ModifiedCount == 1
                 ? FormResult.Success

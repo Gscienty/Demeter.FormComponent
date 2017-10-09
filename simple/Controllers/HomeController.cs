@@ -18,9 +18,16 @@ namespace simple.Controllers
             this._messageManager = messageManager;
         }
 
-        public async Task<IActionResult> Index()
-        {
-            ViewBag.Messages = (await this._messageManager.LastestAsync(20));
+        public async Task<IActionResult> Index(string queryString = null)
+        {   
+            if(queryString == null)
+            {
+                ViewBag.Messages = (await this._messageManager.LastestAsync(20));
+            }
+            else
+            {
+                ViewBag.Messages = (await this._messageManager.QueryAsync(queryString, 20));
+            }
             return View();
         }
 
