@@ -5,11 +5,13 @@ namespace Demeter.FileComponent
 {
     public class DemeterFile : DemeterForm
     {
-        public string MimeType { get; private set; }
+        public string MimeType { get; set; }
 
         [BsonIgnore]
-        public byte[] Content { get; private set; }
+        public byte[] Content { get; set; }
 
         public DemeterFile() : base() { }
+
+        public DemeterFile(string id) : base(id) { }
     }
 }

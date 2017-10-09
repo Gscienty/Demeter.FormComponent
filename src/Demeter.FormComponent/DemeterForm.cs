@@ -9,10 +9,14 @@ namespace Demeter.FormComponent
         public Occurence CreateOn { get; private set; }
         public Occurence DeleteOn { get; private set; }
 
-        public DemeterForm()
+        public DemeterForm() : this(ObjectId.GenerateNewId().ToString())
         {
-            this.Id = ObjectId.GenerateNewId().ToString();
             this.CreateOn = new Occurence();
+        }
+
+        public DemeterForm(string id)
+        {
+            this.Id = id;
         }
 
         public void Delete()

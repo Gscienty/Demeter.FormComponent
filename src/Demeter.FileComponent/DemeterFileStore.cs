@@ -12,7 +12,7 @@ namespace Demeter.FileComponent
     {
         private readonly IMongoCollection<TFile> _formCollection;
         private readonly string _baseFolderPath;
-
+        
         public DemeterFileStore(
             IMongoDatabase database,
             string formsCollection,
@@ -30,19 +30,92 @@ namespace Demeter.FileComponent
             this._baseFolderPath = folderPath;
         }
 
-        Task<FormResult> IFormStore<TFile>.CreateAsync(TFile form, CancellationToken cancellationToken)
+        async Task<FormResult> IFormStore<TFile>.CreateAsync(TFile form, CancellationToken cancellationToken)
         {
-            throw new System.NotImplementedException();
+            if (form == null)
+            {
+                throw new ArgumentNullException(nameof(form));
+            }
+
+            await Task.WhenAll(
+                DemeterFileUtil.WriteAsync(this._baseFolderPath, form.Id, form.Content),
+                this._formCollection
+                .InsertOneAsync(form, cancellationToken: cancellationToken)
+            ).ConfigureAwait(false);
+
+            return FormResult.Success;
         }
 
-        Task<FormResult> IFormStore<TFile>.DeleteAsync(TFile form, CancellationToken cancellationToken)
+        async Task<FormResult> IFormStore<TFile>.DeleteAsync(TFile form, CancellationToken cancellationToken)
         {
-            throw new System.NotImplementedException();
+            if (form == null)
+            {
+                throw new ArgumentNullException(nameof(form));
+            }
+            form.Delete();
+
+            var query = Builders<TFile>.Filter.And(
+                Builders<TFile>.Filter.Eq(f => f.Id, form.Id),
+                Builders<TFile>.Filter.Eq(f => f.DeleteOn, null)
+            );
+            var update = Builders<TFile>.Update.Set(f => f.DeleteOn, form.DeleteOn);
+
+            var result = (await Task.WhenAll(
+                this._formCollection.UpdateOneAsync(
+                    query,
+                    update,
+                    new UpdateOptions { IsUpsert = false },
+                    cancellationToken
+                ),
+                Task.Run(async () =>
+                {
+                    await DemeterFileUtil.DeleteAsync(this._baseFolderPath, form.Id);
+                    return UpdateResult.Unacknowledged.Instance as UpdateResult;
+                })
+            ).ConfigureAwait(false))[0];
+
+            return result.IsAcknowledged && result.ModifiedCount == 1
+                ? FormResult.Success
+                : FormResult.Failed(new FormError { Code = "404", Description = "not find file"});
         }
 
-        Task<TFile> IFormStore<TFile>.FindByIdAsync(string id, CancellationToken cancellationToken)
+        async Task<TFile> IFormStore<TFile>.FindByIdAsync(string id, CancellationToken cancellationToken)
         {
-            throw new System.NotImplementedException();
+            if (id == null)
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            var query = Builders<TFile>.Filter.And(
+                Builders<TFile>.Filter.Eq(f => f.Id, id),
+                Builders<TFile>.Filter.Eq(f => f.DeleteOn, null)
+            );
+
+            var result = await Task.WhenAll(
+                Task.Run(async () =>
+                {
+                    var formResult = await this._formCollection.Find(query)
+                        .FirstOrDefaultAsync(cancellationToken);
+                    return formResult as DemeterFile;
+                }),
+                Task.Run(async () =>
+                {
+                    return new DemeterFile(id)
+                    {
+                        Content = await DemeterFileUtil.ReadAsync(this._baseFolderPath, id)
+                    };
+                })
+            ).ConfigureAwait(false);
+
+            if (result[0] == null)
+            {
+                return null;
+            }
+            else 
+            {
+                result[0].Content = result[1].Content;
+                return result[0] as TFile;
+            }
         }
 
         Task<IEnumerable<TFile>> IFormStore<TFile>.LastestAsync(int count, CancellationToken cancellationToken)
@@ -55,9 +128,30 @@ namespace Demeter.FileComponent
             throw new System.NotImplementedException();
         }
 
-        Task<FormResult> IFormStore<TFile>.UpdateAsync(TFile form, CancellationToken cancellationToken)
+        async Task<FormResult> IFormStore<TFile>.UpdateAsync(TFile form, CancellationToken cancellationToken)
         {
-            throw new System.NotImplementedException();
+            if (form == null)
+            {
+                throw new ArgumentNullException(nameof(form));
+            }
+
+            var query = Builders<TFile>.Filter.And(
+                Builders<TFile>.Filter.Eq(f => f.Id, form.Id),
+                Builders<TFile>.Filter.Eq(f => f.DeleteOn, null)
+            );
+
+            await Task.WhenAll(
+                DemeterFileUtil.WriteAsync(this._baseFolderPath, form.Id, form.Content),
+                this._formCollection
+                    .ReplaceOneAsync(
+                        query,
+                        form,
+                        new UpdateOptions { IsUpsert = false },
+                        cancellationToken
+                )
+            ).ConfigureAwait(false);
+
+            return FormResult.Success;
         }
 
         #region IDisposable Support

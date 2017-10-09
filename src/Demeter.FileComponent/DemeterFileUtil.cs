@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 
 namespace Demeter.FileComponent
 {
@@ -20,7 +21,7 @@ namespace Demeter.FileComponent
             return currentFileFolderPath;
         }
 
-        public static void Write(string baseFolderPath, string filename, byte[] content)
+        public static async Task WriteAsync(string baseFolderPath, string filename, byte[] content)
         {
             var currentFilePath = $@"{EnsureFolder(baseFolderPath, filename)}\{filename}";
 
@@ -35,13 +36,25 @@ namespace Demeter.FileComponent
                 {
                     using (GZipStream compress = new GZipStream(fileStream, CompressionMode.Compress))
                     {
-                        memoryStream.CopyTo(compress);
+                        await memoryStream.CopyToAsync(compress);
                     }
                 }
             }
         }
 
-        public static byte[] Read(string baseFolderPath, string filename)
+        public static Task DeleteAsync(string baseFolderPath, string filename)
+        {
+            var currentFilePath = $@"{EnsureFolder(baseFolderPath, filename)}\{filename}";
+
+            if (File.Exists(currentFilePath))
+            {
+                File.Delete(currentFilePath);
+            }
+
+            return Task.FromResult(0);
+        }
+
+        public static async Task<byte[]> ReadAsync(string baseFolderPath, string filename)
         {
             var currentFilePath = $@"{EnsureFolder(baseFolderPath, filename)}\{filename}";
 
@@ -56,7 +69,7 @@ namespace Demeter.FileComponent
             {
                 using (GZipStream decompress = new GZipStream(fileStream, CompressionMode.Decompress))
                 {
-                    decompress.CopyTo(memoryStream);
+                    await decompress.CopyToAsync(memoryStream);
                 }
             }
 
