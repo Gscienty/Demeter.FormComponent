@@ -1,13 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="MongoDB.Driver" Version="2.4.4" />
+    <PackageReference Include="NEST" Version="5.5.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Demeter.FormComponent\Demeter.FormComponent.csproj" />
   </ItemGroup>
