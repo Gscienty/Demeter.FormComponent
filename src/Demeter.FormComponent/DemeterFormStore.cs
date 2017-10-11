@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using Nest;
 
 namespace Demeter.FormComponent
@@ -117,19 +119,6 @@ namespace Demeter.FormComponent
                 .ConfigureAwait(false);
         }
 
-        async Task<IEnumerable<TForm>> IFormStore<TForm>.LastestAsync(int count, CancellationToken cancellationToken)
-        {
-            var query = Builders<TForm>.Filter.Eq(f => f.DeleteOn, null);
-
-            return await this._formCollection
-                .Find(query)
-                .SortByDescending(f => f.CreateOn)
-                .Limit(count)
-                .ToListAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-        }
-
         async Task<IEnumerable<TForm>> IFormStore<TForm>.QueryAsync(string queryString, int count, CancellationToken cancellationToken)
         {
             if (queryString == null)
@@ -188,6 +177,15 @@ namespace Demeter.FormComponent
                 ? FormResult.Success
                 : FormResult.Failed();
         }
+
+        Task<IEnumerable<TNewForm>> IFormStore<TForm>.QueryAsync<TNewForm>(
+            Func<IQueryable<TForm>, IEnumerable<TNewForm>> queryAction,
+            CancellationToken cancellationToken) => Task.FromResult(
+                queryAction(this._formCollection
+                    .AsQueryable()
+                    .Where(f => f.DeleteOn == null)
+                )
+            );
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls

@@ -22,7 +22,11 @@ namespace simple.Controllers
         {   
             if(queryString == null)
             {
-                ViewBag.Messages = (await this._messageManager.LastestAsync(20));
+                ViewBag.Messages = (await this._messageManager.QueryAsync(query => query
+                    .OrderByDescending(m => m.CreateOn)
+                    .Take(20)
+                    .ToList()
+                ));
             }
             else
             {

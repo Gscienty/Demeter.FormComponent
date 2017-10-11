@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver.Linq;
 
 namespace Demeter.FormComponent
 {
@@ -42,10 +44,11 @@ namespace Demeter.FormComponent
             
         public Task<IEnumerable<TForm>> QueryAsync(string queryString, int count)
             => this._formStore.QueryAsync(queryString, count, new CancellationToken());
-
-        public Task<IEnumerable<TForm>> LastestAsync(int count)
-            => this._formStore.LastestAsync(count, new CancellationToken());
         
+        public Task<IEnumerable<TNewForm>> QueryAsync<TNewForm>(
+            Func<IQueryable<TForm>, IEnumerable<TNewForm>> queryAction)
+            => this._formStore.QueryAsync(queryAction, new CancellationToken());
+
         public Task<TForm> FindByIdAsync(string id)
             => this._formStore.FindByIdAsync(id, new CancellationToken());
     }

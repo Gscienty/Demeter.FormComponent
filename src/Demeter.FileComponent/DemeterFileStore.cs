@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Demeter.FormComponent;
@@ -11,7 +12,7 @@ namespace Demeter.FileComponent
     public class DemeterFileStore<TFile> : IFormStore<TFile>
         where TFile : DemeterFile, new()
     {
-        private readonly IMongoCollection<TFile> _formCollection;
+        private readonly IMongoCollection<TFile> _fileCollection;
         private readonly ElasticClient _elasticClient;
         private readonly string _baseFolderPath;
         
@@ -29,7 +30,7 @@ namespace Demeter.FileComponent
             {
                 throw new ArgumentNullException(nameof(formsCollection));
             }
-            this._formCollection = database.GetCollection<TFile>(formsCollection);
+            this._fileCollection = database.GetCollection<TFile>(formsCollection);
             this._baseFolderPath = folderPath;
 
             this._elasticClient = elasticClient;
@@ -50,7 +51,7 @@ namespace Demeter.FileComponent
                     await DemeterFileUtil.WriteAsync(this._baseFolderPath, file.Id, file.Content);
                     writeMutex.ReleaseMutex();
                 }),
-                this._formCollection
+                this._fileCollection
                 .InsertOneAsync(file, cancellationToken: cancellationToken),
                 Task.Run(async () =>
                 {
@@ -87,7 +88,7 @@ namespace Demeter.FileComponent
             var update = Builders<TFile>.Update.Set(f => f.DeleteOn, file.DeleteOn);
 
             var result = (await Task.WhenAll(
-                this._formCollection.UpdateOneAsync(
+                this._fileCollection.UpdateOneAsync(
                     query,
                     update,
                     new UpdateOptions { IsUpsert = false },
@@ -132,7 +133,7 @@ namespace Demeter.FileComponent
             var result = await Task.WhenAll(
                 Task.Run(async () =>
                 {
-                    var formResult = await this._formCollection.Find(query)
+                    var formResult = await this._fileCollection.Find(query)
                         .FirstOrDefaultAsync(cancellationToken);
                     return formResult as DemeterFile;
                 }),
@@ -155,19 +156,7 @@ namespace Demeter.FileComponent
                 return result[0] as TFile;
             }
         }
-
-       async Task<IEnumerable<TFile>> IFormStore<TFile>.LastestAsync(int count, CancellationToken cancellationToken)
-        {
-            var query = Builders<TFile>.Filter.Eq(f => f.DeleteOn, null);
-
-            return await this._formCollection
-                .Find(query)
-                .SortByDescending(f => f.CreateOn)
-                .Limit(count)
-                .ToListAsync(cancellationToken)
-                .ConfigureAwait(false);
-        }
-
+        
         async Task<IEnumerable<TFile>> IFormStore<TFile>.QueryAsync(string queryString, int count, CancellationToken cancellationToken)
         {
             if (queryString == null)
@@ -207,7 +196,7 @@ namespace Demeter.FileComponent
                     await DemeterFileUtil.WriteAsync(this._baseFolderPath, file.Id, file.Content);
                     writeMutex.ReleaseMutex();
                 }),
-                this._formCollection
+                this._fileCollection
                     .ReplaceOneAsync(
                         query,
                         file,
@@ -240,6 +229,15 @@ namespace Demeter.FileComponent
 
             return FormResult.Success;
         }
+
+        Task<IEnumerable<TNewFile>> IFormStore<TFile>.QueryAsync<TNewFile>(
+            Func<IQueryable<TFile>, IEnumerable<TNewFile>> queryAction,
+            CancellationToken cancellationToken) => Task.FromResult(
+                queryAction(this._fileCollection
+                    .AsQueryable()
+                    .Where(f => f.DeleteOn == null)
+                )
+            );
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace Demeter.FormComponent
@@ -16,8 +17,12 @@ namespace Demeter.FormComponent
 
         Task<TForm> FindByIdAsync(string id, CancellationToken cancellationToken);
 
-        Task<IEnumerable<TForm>> QueryAsync(string queryString, int count, CancellationToken cancellationToken);
+        Task<IEnumerable<TForm>> QueryAsync(
+            string queryString, int count, CancellationToken cancellationToken);
 
-        Task<IEnumerable<TForm>> LastestAsync(int count, CancellationToken cancellationToken);
+        Task<IEnumerable<TNewForm>> QueryAsync<TNewForm>(
+            Func<IQueryable<TForm>, IEnumerable<TNewForm>> queryAction,
+            CancellationToken cancellationToken
+        );
     }
 }
