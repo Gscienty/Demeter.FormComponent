@@ -11,7 +11,7 @@ namespace Demeter.FileComponent.AspNetCore.Extension
 {
     public static class ConfigurationExtension
     {
-        public static void AddDemeterForm<TForm>(
+        public static void AddDemeterFile<TForm>(
             this IServiceCollection services,
             IConfiguration configuration,
             string formTheme)
