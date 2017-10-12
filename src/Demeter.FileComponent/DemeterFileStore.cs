@@ -42,15 +42,10 @@ namespace Demeter.FileComponent
             {
                 throw new ArgumentNullException(nameof(file));
             }
-
-            Mutex writeMutex = new Mutex(true);
+            byte[] tempStore = file.Content;
+            file.Content = null;
             await Task.WhenAll(
-                Task.Run(async () =>
-                {
-                    writeMutex.WaitOne();
-                    await DemeterFileUtil.WriteAsync(this._baseFolderPath, file.Id, file.Content);
-                    writeMutex.ReleaseMutex();
-                }),
+                DemeterFileUtil.WriteAsync(this._baseFolderPath, file.Id, tempStore),
                 this._fileCollection
                 .InsertOneAsync(file, cancellationToken: cancellationToken),
                 Task.Run(async () =>
@@ -59,16 +54,10 @@ namespace Demeter.FileComponent
                     {
                         return ;
                     }
-                    byte[] tempStore = file.Content;
-                    writeMutex.WaitOne();
-                    file.Content = null;
                     await this._elasticClient.IndexAsync(file, m => m.Id(file.Id));
-                    file.Content = tempStore;
-                    writeMutex.ReleaseMutex();
                 })
             ).ConfigureAwait(false);
-
-            writeMutex.Dispose();
+            file.Content = tempStore;
 
             return FormResult.Success;
         }
@@ -188,14 +177,10 @@ namespace Demeter.FileComponent
                 Builders<TFile>.Filter.Eq(f => f.DeleteOn, null)
             );
 
-            Mutex writeMutex = new Mutex(true);
+            byte[] tempStore = file.Content;
+            file.Content = null;
             await Task.WhenAll(
-                Task.Run(async () =>
-                {
-                    writeMutex.WaitOne();
-                    await DemeterFileUtil.WriteAsync(this._baseFolderPath, file.Id, file.Content);
-                    writeMutex.ReleaseMutex();
-                }),
+                DemeterFileUtil.WriteAsync(this._baseFolderPath, file.Id, tempStore),
                 this._fileCollection
                     .ReplaceOneAsync(
                         query,
@@ -209,23 +194,15 @@ namespace Demeter.FileComponent
                     {
                         return (ReplaceOneResult)ReplaceOneResult.Unacknowledged.Instance;
                     }
-
-                    byte[] tempStore = file.Content;
-
-                    writeMutex.WaitOne();
-                    file.Content = null;
                     await this._elasticClient.UpdateAsync<TFile>(
                         DocumentPath<TFile>.Id(file.Id),
                         update => update.Doc(file)
                     );
-                    file.Content = tempStore;
-                    writeMutex.ReleaseMutex();
 
                     return (ReplaceOneResult)ReplaceOneResult.Unacknowledged.Instance;
                 })
             ).ConfigureAwait(false);
-
-            writeMutex.Dispose();
+            file.Content = tempStore;
 
             return FormResult.Success;
         }
