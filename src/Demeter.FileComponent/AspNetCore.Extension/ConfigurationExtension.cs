@@ -5,26 +5,28 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Nest;
+using Demeter.FormComponent;
 
-namespace Demeter.FormComponent.AspNetCore.Extension
+namespace Demeter.FileComponent.AspNetCore.Extension
 {
     public static class ConfigurationExtension
     {
-        public static void AddDemeterForm<TFile>(
+        public static void AddDemeterForm<TForm>(
             this IServiceCollection services,
             IConfiguration configuration,
             string formTheme)
-            where TFile : DemeterForm, new()
+            where TForm : DemeterFile, new()
         {
            IConfigurationSection section = configuration.GetSection("DemeterForm");
            
-           services.Configure<Dictionary<string, DemeterFormSettings>>(options => {
+           services.Configure<Dictionary<string, DemeterFileSettings>>(options => {
                var themeSection = section.GetSection(formTheme);
-                var settings = new DemeterFormSettings
+                var settings = new DemeterFileSettings
                 {
                     ConnectionString = themeSection.GetSection("ConnectionString").Value,
                     Database = themeSection.GetSection("Database").Value,
                     FormCollection = themeSection.GetSection("FormCollection").Value,
+                    FolderPath = themeSection.GetSection("FolderPath").Value,
                     ElasticSearchConnectionString = themeSection
                         .GetSection("ElasticSearchConnectionString").Exists()
                         ? themeSection
@@ -42,9 +44,9 @@ namespace Demeter.FormComponent.AspNetCore.Extension
                 }
            });
 
-           services.AddSingleton<IFormStore<TFile>>(provider => {
+           services.AddSingleton<IFormStore<TForm>>(provider => {
                 var option = provider
-                .GetService<IOptions<Dictionary<string, DemeterFormSettings>>>()
+                .GetService<IOptions<Dictionary<string, DemeterFileSettings>>>()
                 .Value[formTheme];
                 var client = new MongoClient(option.ConnectionString);
                 var database = client.GetDatabase(option.Database);
@@ -55,14 +57,15 @@ namespace Demeter.FormComponent.AspNetCore.Extension
                             .DefaultIndex(option.FormCollection)
                     );
 
-                return new DemeterFormStore<TFile>(
+                return new DemeterFileStore<TForm>(
                     database,
                     option.FormCollection,
+                    option.FolderPath,
                     elasticSearch
                 );
            });
 
-           services.AddSingleton<FormManager<TFile>>(provider => new FormManager<TFile>(provider));
+           services.AddSingleton<FormManager<TForm>>(provider => new FormManager<TForm>(provider));
         }
     }
 }

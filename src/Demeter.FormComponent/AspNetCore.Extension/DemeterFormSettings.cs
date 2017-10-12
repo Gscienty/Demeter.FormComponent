@@ -1,6 +1,6 @@
 namespace Demeter.FormComponent.AspNetCore.Extension
 {
-    public sealed class DemeterFormSettings
+    public class DemeterFormSettings
     {
         public string ConnectionString { get; set; }
         public string Database { get; set; }
