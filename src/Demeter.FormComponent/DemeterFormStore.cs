@@ -178,8 +178,8 @@ namespace Demeter.FormComponent
                 : FormResult.Failed();
         }
 
-        Task<IEnumerable<TNewForm>> IFormStore<TForm>.QueryAsync<TNewForm>(
-            Func<IQueryable<TForm>, IEnumerable<TNewForm>> queryAction,
+        Task<TNewForm> IFormStore<TForm>.QueryAsync<TNewForm>(
+            Func<IQueryable<TForm>, TNewForm> queryAction,
             CancellationToken cancellationToken) => Task.FromResult(
                 queryAction(this._formCollection
                     .AsQueryable()

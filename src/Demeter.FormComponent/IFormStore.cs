@@ -20,9 +20,8 @@ namespace Demeter.FormComponent
         Task<IEnumerable<TForm>> QueryAsync(
             string queryString, int count, CancellationToken cancellationToken);
 
-        Task<IEnumerable<TNewForm>> QueryAsync<TNewForm>(
-            Func<IQueryable<TForm>, IEnumerable<TNewForm>> queryAction,
-            CancellationToken cancellationToken
-        );
+        Task<TNewForm> QueryAsync<TNewForm>(
+            Func<IQueryable<TForm>, TNewForm> queryAction,
+            CancellationToken cancellationToken);
     }
 }

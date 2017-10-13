@@ -207,8 +207,8 @@ namespace Demeter.FileComponent
             return FormResult.Success;
         }
 
-        Task<IEnumerable<TNewFile>> IFormStore<TFile>.QueryAsync<TNewFile>(
-            Func<IQueryable<TFile>, IEnumerable<TNewFile>> queryAction,
+        Task<TNewFile> IFormStore<TFile>.QueryAsync<TNewFile>(
+            Func<IQueryable<TFile>, TNewFile> queryAction,
             CancellationToken cancellationToken) => Task.FromResult(
                 queryAction(this._fileCollection
                     .AsQueryable()
