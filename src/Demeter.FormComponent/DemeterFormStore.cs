@@ -173,7 +173,7 @@ namespace Demeter.FormComponent
                 })
             ))[0];
 
-            return result.IsModifiedCountAvailable && result.ModifiedCount == 1
+            return result.IsModifiedCountAvailable && result.MatchedCount == 1
                 ? FormResult.Success
                 : FormResult.Failed();
         }
