@@ -45,8 +45,8 @@ namespace Demeter.FormComponent
         public Task<IEnumerable<TForm>> QueryAsync(string queryString, int count)
             => this._formStore.QueryAsync(queryString, count, new CancellationToken());
         
-        public Task<IEnumerable<TNewForm>> QueryAsync<TNewForm>(
-            Func<IQueryable<TForm>, IEnumerable<TNewForm>> queryAction)
+        public Task<TNewForm> QueryAsync<TNewForm>(
+            Func<IQueryable<TForm>, TNewForm> queryAction)
             => this._formStore.QueryAsync(queryAction, new CancellationToken());
 
         public Task<TForm> FindByIdAsync(string id)
