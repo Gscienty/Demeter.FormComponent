@@ -146,7 +146,11 @@ namespace Demeter.FileComponent
             }
         }
         
-        async Task<IEnumerable<TFile>> IFormStore<TFile>.QueryAsync(string queryString, int count, CancellationToken cancellationToken)
+        async Task<TNewFile> IFormStore<TFile>.QueryAsync<TNewFile>(
+            string queryString,
+            int count,
+            Func<IQueryable<TFile>, TNewFile> queryAction,
+            CancellationToken cancellationToken)
         {
             if (queryString == null)
             {
@@ -162,7 +166,10 @@ namespace Demeter.FileComponent
                 q.QueryString(m => m.Query(queryString))
             ));
 
-            return response.Hits.Select(hit => DemeterForm.QueryHitTransfer(hit));
+            return queryAction(response.Hits
+                .Select(hit => DemeterForm.QueryHitTransfer(hit))
+                .AsQueryable()
+            );
         }
 
         async Task<FormResult> IFormStore<TFile>.UpdateAsync(TFile file, CancellationToken cancellationToken)

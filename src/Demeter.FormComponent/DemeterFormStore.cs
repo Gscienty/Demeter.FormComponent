@@ -119,7 +119,11 @@ namespace Demeter.FormComponent
                 .ConfigureAwait(false);
         }
 
-        async Task<IEnumerable<TForm>> IFormStore<TForm>.QueryAsync(string queryString, int count, CancellationToken cancellationToken)
+        async Task<TNewForm> IFormStore<TForm>.QueryAsync<TNewForm>(
+            string queryString,
+            int count,
+            Func<IQueryable<TForm>, TNewForm> queryAction,
+            CancellationToken cancellationToken)
         {
             if (queryString == null)
             {
@@ -134,7 +138,10 @@ namespace Demeter.FormComponent
                 .From(0).Size(count).Query(q =>
                 q.QueryString(m => m.Query(queryString))
             ));
-            return response.Hits.Select(hit => DemeterForm.QueryHitTransfer(hit));
+            return queryAction(response.Hits
+                .Select(hit => DemeterForm.QueryHitTransfer(hit))
+                .AsQueryable()
+            );
         }
 
         async Task<FormResult> IFormStore<TForm>.UpdateAsync(TForm form, CancellationToken cancellationToken)
