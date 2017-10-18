@@ -5,7 +5,7 @@ namespace Demeter.FormComponent
 {
     public abstract class DemeterForm
     {
-        public string Id { get; private set; }
+        public string Id { get; internal set; }
         public Occurence CreateOn { get; private set; }
         public Occurence DeleteOn { get; private set; }
 
