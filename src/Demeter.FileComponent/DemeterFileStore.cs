@@ -162,11 +162,7 @@ namespace Demeter.FileComponent
                 q.QueryString(m => m.Query(queryString))
             ));
 
-            return response.Hits.Select(hit =>
-            {
-                hit.Source.Id = hit.Id;
-                return hit.Source;
-            });
+            return response.Hits.Select(hit => DemeterForm.QueryHitTransfer(hit));
         }
 
         async Task<FormResult> IFormStore<TFile>.UpdateAsync(TFile file, CancellationToken cancellationToken)

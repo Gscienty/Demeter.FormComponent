@@ -134,11 +134,7 @@ namespace Demeter.FormComponent
                 .From(0).Size(count).Query(q =>
                 q.QueryString(m => m.Query(queryString))
             ));
-            return response.Hits.Select(hit => 
-            {
-                hit.Source.Id = hit.Id;
-                return hit.Source;
-            });
+            return response.Hits.Select(hit => DemeterForm.QueryHitTransfer(hit));
         }
 
         async Task<FormResult> IFormStore<TForm>.UpdateAsync(TForm form, CancellationToken cancellationToken)

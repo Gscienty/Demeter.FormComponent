@@ -1,5 +1,6 @@
 using Demeter.FormComponent.Model;
 using MongoDB.Bson;
+using Nest;
 
 namespace Demeter.FormComponent
 {
@@ -22,6 +23,14 @@ namespace Demeter.FormComponent
         public void Delete()
         {
             this.DeleteOn = new Occurence();
+        }
+
+        public static TForm QueryHitTransfer<TForm>(IHit<TForm> hit)
+            where TForm : DemeterForm
+        {
+            TForm source = hit.Source;
+            source.Id = hit.Id;
+            return source;
         }
     }
 }
