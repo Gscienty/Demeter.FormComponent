@@ -1,11 +1,14 @@
 using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using Nest;
+using Demeter.FormComponent.Attributes;
 
 namespace Demeter.FormComponent
 {
@@ -31,6 +34,8 @@ namespace Demeter.FormComponent
 
             this._formCollection = database.GetCollection<TForm>(formsCollection);
             this._elasticClient = elasticClient;
+
+            this.IndexingMongo().RunSynchronously(TaskScheduler.Current);
         }
 
         async Task<FormResult> IFormStore<TForm>.CreateAsync(TForm form,
@@ -51,7 +56,6 @@ namespace Demeter.FormComponent
                     {
                         return;
                     }
-
                     await this._elasticClient.IndexAsync(
                         form, m => m.Id(form.Id)
                     );
@@ -155,7 +159,7 @@ namespace Demeter.FormComponent
                 Builders<TForm>.Filter.Eq(f => f.DeleteOn, null),
                 Builders<TForm>.Filter.Eq(f => f.Id, form.Id)
             );
-            
+
             var result = (await Task.WhenAll(
                 this._formCollection.ReplaceOneAsync(
                     query,
@@ -163,7 +167,7 @@ namespace Demeter.FormComponent
                     new UpdateOptions { IsUpsert = false },
                     cancellationToken
                 ),
-                Task.Run(async () => 
+                Task.Run(async () =>
                 {
                     if (this._elasticClient == null)
                     {
@@ -192,6 +196,58 @@ namespace Demeter.FormComponent
                     .Where(f => f.DeleteOn == null)
                 )
             );
+
+        private async Task IndexingMongo()
+        {
+            List<CreateIndexModel<TForm>> models = new List<CreateIndexModel<TForm>>();
+            
+            foreach (PropertyInfo property in typeof(TForm).GetRuntimeProperties())
+            {
+                IndexAttribute indexType = property.GetCustomAttribute<IndexAttribute>();
+                if (indexType != null)
+                {
+                    IndexKeysDefinition<TForm> indexKeysDefinition = null;
+
+                    switch (indexType.IndexType)
+                    {
+                        case IndexType.Ascending:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.Ascending(property.Name);
+                            break;
+                        case IndexType.Descending:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.Descending(property.Name);
+                            break;
+                        case IndexType.Geo2D:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.Geo2D(property.Name);
+                            break;
+                        case IndexType.Geo2DSphere:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.Geo2DSphere(property.Name);
+                            break;
+                        case IndexType.GeoHaystack:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.GeoHaystack(property.Name);
+                            break;
+                        case IndexType.Hashed:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.Hashed(property.Name);
+                            break;
+                        case IndexType.Text:
+                            indexKeysDefinition = Builders<TForm>.IndexKeys.Text(property.Name);
+                            break;
+                    }
+
+                    if (indexKeysDefinition != null)
+                    {
+                        models.Add(new CreateIndexModel<TForm>(
+                            indexKeysDefinition,
+                            new CreateIndexOptions
+                            {
+                                Unique = indexType.IsUnique
+                            })
+                        );
+                    }
+                }
+            }
+
+            await this._formCollection.Indexes.CreateManyAsync(models);
+        }
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
