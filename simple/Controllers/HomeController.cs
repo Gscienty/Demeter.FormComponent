@@ -30,7 +30,7 @@ namespace simple.Controllers
             }
             else
             {
-                ViewBag.Messages = (await this._messageManager.QueryAsync(queryString, 20));
+                ViewBag.Messages = (await this._messageManager.QueryAsync(queryString, 20, item => item));
             }
             return View();
         }
