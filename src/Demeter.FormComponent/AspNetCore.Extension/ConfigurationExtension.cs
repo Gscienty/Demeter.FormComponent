@@ -13,6 +13,31 @@ namespace Demeter.FormComponent.AspNetCore.Extension
 {
     public static class ConfigurationExtension
     {
+        public static void AddDemeterForm<TForm>(this IServiceCollection services)
+            where TForm : DemeterForm, new()
+        {
+            IConfiguration configuration = services
+                .BuildServiceProvider()
+                .GetService<IConfiguration>()
+                .GetSection("DemeterForm");
+            
+            DemeterFormSettings settings = null;
+            if (configuration.GetSection("default").Exists())
+            {
+                settings = ConfigurationExtension.GetDemeterFormSettings<TForm>(
+                    services,
+                    configuration.GetSection("default")
+                );
+            }
+            
+            if (settings == null)
+            {
+                return;
+            }
+
+            ConfigurationExtension.AddSingletonDemeterForm<TForm>(services, settings);
+        }
+
         public static void AddDemeterForm<TForm>(this IServiceCollection services, string formName)
             where TForm : DemeterForm, new()
         {
@@ -43,6 +68,14 @@ namespace Demeter.FormComponent.AspNetCore.Extension
                 return;
             }
 
+            ConfigurationExtension.AddSingletonDemeterForm<TForm>(services, settings);
+        }
+
+        private static void AddSingletonDemeterForm<TForm>(
+            IServiceCollection services,
+            DemeterFormSettings settings)
+            where TForm : DemeterForm, new()
+        {
             services.AddSingleton<IFormStore<TForm>>(provider =>
             {
                 var client = new MongoClient(settings.ConnectionString);
@@ -63,7 +96,7 @@ namespace Demeter.FormComponent.AspNetCore.Extension
         private static DemeterFormSettings GetDemeterFormSettings<TForm>(
             IServiceCollection services,
             IConfigurationSection section)
-        where TForm : DemeterForm, new()
+            where TForm : DemeterForm, new()
         {
             var settings = new DemeterFormSettings();
 
@@ -96,7 +129,7 @@ namespace Demeter.FormComponent.AspNetCore.Extension
             }
             else
             {
-                return null;
+                settings.FormCollection = typeof(TForm).FullName.Replace('.', '_');
             }
 
             if (formName != null && formName.Searching)
